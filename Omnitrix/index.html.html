@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Omnitrix Final Oracle</title>
+    <style>
+        /* 🚫 स्क्रीन लॉक और सिस्टम स्वाइप बंद */
+        * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; -webkit-user-select: none; }
+        html, body { background: #000; display: flex; justify-content: center; align-items: center; height: 100%; width: 100%; overflow: hidden; position: fixed; font-family: sans-serif; }
+
+        /* 🔘 मुख्य बॉर्डर */
+        .omnitrix {
+            width: 95vmin; height: 95vmin;
+            background: #111; border-radius: 50%;
+            position: relative; display: flex; justify-content: center; align-items: center;
+            border: 2.5vmin solid #2a2a2a !important; 
+            cursor: pointer; overflow: hidden;
+            box-shadow: inset 0 0 5vmin #000;
+        }
+
+        /* 🟢 स्टार्टअप आइकन */
+        .startup-ui { width: 100%; height: 100%; position: absolute; z-index: 10; display: flex; justify-content: center; align-items: center; transition: opacity 0.3s; }
+        .triangle { position: absolute; width: 100%; height: 100%; transition: background 0.3s; background: radial-gradient(circle, #39ff14 20%, #006600 100%); }
+        .up { clip-path: polygon(50% 50%, 0% 0%, 100% 0%); }
+        .down { clip-path: polygon(50% 50%, 0% 100%, 100% 100%); }
+
+        /* ⬛ मैकेनिकल प्लेट्स */
+        .side-plate { position: absolute; width: 100%; height: 100%; background: #111; z-index: 12; transition: transform 0.3s ease; border: 0.5vmin solid #2a2a2a; }
+        .left-p { clip-path: polygon(0 0, 50% 50%, 0 100%); left: 0; }
+        .right-p { clip-path: polygon(100% 0, 50% 50%, 100% 100%); right: 0; }
+        .closing .left-p { transform: translateX(50%); }
+        .closing .right-p { transform: translateX(-50%); }
+
+        /* 💎 डायमंड सिलेक्शन */
+        .selection-ui { width: 100%; height: 100%; position: absolute; display: none; justify-content: center; align-items: center; z-index: 5; transition: opacity 0.3s, transform 0.3s; }
+        .diamond-frame { width: 85%; height: 95%; background: #2a2a2a; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); display: flex; justify-content: center; align-items: center; }
+        .diamond-inner { width: 90%; height: 92%; background: #39ff14; clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 10vmin #008800; overflow: hidden; }
+
+        /* 👤 एलीअन स्लाइडिंग इमेज */
+        .alien-box { display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        #alien-img { max-width: 80%; max-height: 80%; object-fit: contain; filter: brightness(0); position: relative; }
+
+        /* ⚡ एनीमेशन मोड्स */
+        .transformation-flash { animation: greenPulse 0.5s ease-out forwards; }
+        @keyframes greenPulse { 0% { background: #111; } 50% { background: #39ff14; box-shadow: inset 0 0 20vmin #fff, 0 0 15vmin #39ff14; } 100% { background: #fff; } }
+        .white-mode .triangle { background: radial-gradient(circle, #fff 40%, #888 100%) !important; }
+        .white-mode { animation: whiteBreathe 1.5s infinite alternate ease-in-out; }
+        @keyframes whiteBreathe { from { box-shadow: inset 0 0 5vmin #fff; } to { box-shadow: inset 0 0 10vmin #fff, 0 0 5vmin #fff; } }
+
+        /* 🚨 रेड ब्लिंक वार्निंग */
+        .red-blink { animation: rAlertBlink 0.18s 8 alternate forwards; }
+        @keyframes rAlertBlink { from { background: #000; box-shadow: none; } to { background: #f00; box-shadow: inset 0 0 15vmin #000, 0 0 10vmin #f00; } }
+        .red-mode .triangle { background: radial-gradient(circle, #f00 40%, #600 100%) !important; }
+
+        /* 💫 स्लाइड एनीमेशन */
+        .s-in { animation: slideIn 0.3s forwards; }
+        .s-out { animation: slideOut 0.3s forwards; }
+        @keyframes slideIn { 0% { transform: translateX(100%); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { 0% { transform: translateX(0); opacity: 1; } 100% { transform: translateX(-100%); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <div class="omnitrix" id="watch">
+        <div class="startup-ui" id="startup">
+            <div class="triangle up"></div>
+            <div class="triangle down"></div>
+            <div class="side-plate left-p"></div>
+            <div class="side-plate right-p"></div>
+        </div>
+
+        <div class="selection-ui" id="selection">
+            <div class="diamond-frame">
+                <div class="diamond-inner">
+                    <div class="alien-box">
+                        <img id="alien-img" src="alien-img/j.png">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const watch = document.getElementById('watch');
+        const startup = document.getElementById('startup');
+        const selection = document.getElementById('selection');
+        const alienImg = document.getElementById('alien-img');
+
+        function play(f) {
+            const a = new Audio('sound/' + f + '.mp3');
+            a.play().catch(() => {});
+        }
+
+        let state = "STARTUP"; 
+        let idx = 0;
+        const aliens = ["j","p","c","r","i","f","m","l","n","h","b","d","a","o","k","q","e","g"];
+
+        // 🔘 मुख्य क्लिक/टैप इवेंट
+        watch.onclick = (e) => {
+            e.preventDefault();
+            if (state === "STARTUP") {
+                play('C');
+                startup.classList.add('closing');
+                setTimeout(() => {
+                    selection.style.display = "flex";
+                    selection.style.opacity = "1";
+                    selection.style.transform = "scale(1)";
+                    startup.style.display = "none";
+                    state = "SELECTION";
+                }, 350);
+            } 
+            else if (state === "SELECTION") {
+                state = "BUSY";
+                play('T');
+                watch.classList.add('transformation-flash');
+                selection.style.opacity = "0"; 
+                setTimeout(() => {
+                    watch.classList.remove('transformation-flash');
+                    selection.style.display = "none";
+                    startup.style.display = "flex";
+                    startup.classList.remove('closing');
+                    watch.classList.add('white-mode');
+                    state = "WHITE";
+                }, 500);
+            } 
+            else if (state === "WHITE") {
+                state = "BUSY";
+                play('W');
+                watch.classList.add('red-blink');
+                setTimeout(() => {
+                    watch.classList.remove('red-blink', 'white-mode');
+                    watch.classList.add('red-mode');
+                    state = "RED";
+                }, 1400);
+            } 
+            else if (state === "RED") {
+                play('C');
+                watch.classList.remove('red-mode', 'white-mode', 'transformation-flash', 'red-blink');
+                startup.classList.remove('closing');
+                startup.style.display = "flex";
+                startup.style.opacity = "1";
+                state = "STARTUP";
+                idx = 0;
+                alienImg.src = 'alien-img/j.png';
+            }
+        };
+
+        // 🔄 एलीअन स्विच फंक्शन
+        function switchAlien(dir) {
+            if (state !== "SELECTION") return;
+            play('R');
+            alienImg.classList.add('s-out');
+            setTimeout(() => {
+                idx = (idx + dir + aliens.length) % aliens.length;
+                alienImg.src = 'alien-img/' + aliens[idx] + '.png';
+                alienImg.classList.remove('s-out');
+                alienImg.classList.add('s-in');
+                setTimeout(() => alienImg.classList.remove('slide-in'), 300);
+            }, 150);
+        }
+
+        // 🎡 क्राउन/व्हील फिक्स
+        window.addEventListener('wheel', (e) => {
+            if (state === "SELECTION") { e.preventDefault(); switchAlien(e.deltaY > 0 ? 1 : -1); }
+        }, { passive: false });
+
+        window.addEventListener('keydown', (e) => {
+            if (state === "SELECTION") {
+                if (e.key === "ArrowDown" || e.key === "ArrowRight") switchAlien(1);
+                if (e.key === "ArrowUp" || e.key === "ArrowLeft") switchAlien(-1);
+            }
+        });
+
+        // 🖐️ हाई-सेंसिटिविटी स्वाइप (Firebolt स्पेशल)
+        let sX = 0;
+        document.addEventListener('touchstart', (e) => {
+            sX = e.touches[0].clientX;
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (state === "SELECTION") e.preventDefault(); // सिस्टम को रोकने के लिए
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            let dX = e.changedTouches[0].clientX;
+            let diff = sX - dX;
+            // सिर्फ 20px के स्वाइप पर भी एलीअन बदल जाएगा
+            if (Math.abs(diff) > 20) {
+                switchAlien(diff > 0 ? 1 : -1);
+            }
+        }, { passive: false });
+
+    </script>
+</body>
+</html>
